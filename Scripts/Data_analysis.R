@@ -4,8 +4,7 @@ library(drc)
 library(tidyverse)
 library(readxl)
 
-data_raw <- read_excel("Data/Data-FMI310.xlsx", 
-                       sheet = "One stressor -SM")
+data_raw <- read_excel(path = "Data/Data-FMI310.xlsx", sheet = "One stressor -SM")
 
 data_raw
 
@@ -34,18 +33,21 @@ data %>%
   theme_bw()
 
 data_drm <- drm(formula = Fronds_number ~ Stressor_A, data = data, 
-                fct = LL.4(names = c("Slope", "Bottom", "Top", "EC50")))
+                fct = LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")))
 
 data_drm %>% summary()
 
-pred <- tibble(Stressor_A = seq(from = min(data$Stressor_A), 
-                                  to = max(data$Stressor_A), 
-                                  length.out = 1000)) %>% 
-  as.data.frame() %>% 
+ED(data_drm, respLev = c(5, 10, 50, 90), interval = "delta")
+
+pred <- data.frame(Stressor_A = seq(from = min(data$Stressor_A), 
+                                    to = max(data$Stressor_A), 
+                                    length.out = 1000)) %>% 
   mutate(pred = predict(data_drm, newdata = .), 
          lwr = predict(data_drm, newdata = ., interval = "confidence")[, 2], 
          upr = predict(data_drm, newdata = ., interval = "confidence")[, 3]) %>% 
   as_tibble()
+
+pred
 
 data %>% 
   group_by(Stressor_A) %>% 
