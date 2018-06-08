@@ -68,3 +68,5 @@ data %>%
   labs(x = "Stressor A", 
        y = "Fronds number") + 
   theme_bw()
+
+ggsave("Plots/Fronds_DRC.pdf", height = 3.5, units = "in")
