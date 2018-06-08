@@ -51,12 +51,6 @@ data %>%
   summarize(Fronds_number_mean = mean(Fronds_number), 
             Fronds_number_SE = sd(Fronds_number) / sqrt(n())) %>% 
   ggplot() +
-  geom_point(mapping = aes(x = Stressor_A, y = Fronds_number_mean), 
-             color = "dimgrey") +
-  geom_errorbar(mapping = aes(x = Stressor_A, 
-                              ymin = Fronds_number_mean - Fronds_number_SE,
-                              ymax = Fronds_number_mean + Fronds_number_SE),
-                color = "dimgrey", width = 0) + 
   geom_vline(xintercept = data_drm$coefficients[4], 
              color = "red", linetype = 3) +
   geom_hline(yintercept = ((data_drm$coefficients[3] - data_drm$coefficients[2]) / 2) + data_drm$coefficients[2], 
@@ -65,6 +59,12 @@ data %>%
               data = pred, alpha = 0.2) +
   geom_line(mapping = aes(x = Stressor_A, y = pred), 
             data = pred, size = 1) +
+  geom_point(mapping = aes(x = Stressor_A, y = Fronds_number_mean), 
+             color = "dimgrey") +
+  geom_errorbar(mapping = aes(x = Stressor_A, 
+                              ymin = Fronds_number_mean - Fronds_number_SE,
+                              ymax = Fronds_number_mean + Fronds_number_SE),
+                color = "dimgrey", width = 0) + 
   labs(x = "Stressor A", 
        y = "Fronds number") + 
   theme_bw()
