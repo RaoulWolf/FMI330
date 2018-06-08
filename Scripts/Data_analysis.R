@@ -28,7 +28,8 @@ rm(data_raw)
 data %>% 
   ggplot(mapping = aes(x = Stressor_A, y = Fronds_number)) +
   geom_point(alpha = 0.5) +
-  labs(x = "Stressor A", 
+  labs(title = "The raw data", 
+       x = "Stressor A", 
        y = "Fronds number") + 
   theme_bw()
 
@@ -65,7 +66,9 @@ data %>%
                               ymin = Fronds_number_mean - Fronds_number_SE,
                               ymax = Fronds_number_mean + Fronds_number_SE),
                 color = "dimgrey", width = 0) + 
-  labs(x = "Stressor A", 
+  labs(title = "Dose-response curve",
+       subtitle = "Based on a four-parameter log-logistic function",
+       x = "Stressor A", 
        y = "Fronds number") + 
   theme_bw()
 
