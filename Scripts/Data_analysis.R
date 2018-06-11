@@ -55,19 +55,19 @@ data %>%
             Fronds_number_SE = sd(Fronds_number) / sqrt(n())) %>% 
   ggplot() +
   geom_vline(xintercept = data_drm$coefficients[4], 
-             color = "red", linetype = 3) +
+             color = "blue", linetype = 3) +
   geom_hline(yintercept = ((data_drm$coefficients[3] - data_drm$coefficients[2]) / 2) + data_drm$coefficients[2], 
-             color = "red", linetype = 3) +
+             color = "blue", linetype = 3) +
   geom_ribbon(mapping = aes(x = Stressor_A, ymin = lwr, ymax = upr), 
               data = pred, alpha = 0.2) +
   geom_line(mapping = aes(x = Stressor_A, y = pred), 
             data = pred, size = 1) +
   geom_point(mapping = aes(x = Stressor_A, y = Fronds_number_mean), 
-             color = "dimgrey") +
+             color = "red") +
   geom_errorbar(mapping = aes(x = Stressor_A, 
                               ymin = Fronds_number_mean - Fronds_number_SE,
                               ymax = Fronds_number_mean + Fronds_number_SE),
-                color = "dimgrey", width = 0) + 
+                color = "red", width = 0) + 
   labs(title = "Dose-response curve",
        subtitle = "Based on a four-parameter log-logistic function",
        x = "Stressor A", 
