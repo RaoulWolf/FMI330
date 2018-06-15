@@ -1,13 +1,15 @@
+## (Installing and) Loading the necessary packages
 # install.packages(c("tidyverse", "drc"))
-
 library(drc)
 library(tidyverse)
 library(readxl)
 
+## Reading in the data and inspecting it
 data_raw <- read_excel(path = "Data/Data-FMI310.xlsx", sheet = "One stressor -SM")
 
 data_raw
 
+## Cleaning up the data for ideal use
 data <- data_raw %>% 
   rename(Stressor_A = `Stressor A`, 
          Fronds_number = `Fronds Number`, 
@@ -24,6 +26,7 @@ data
 
 rm(data_raw)
 
+## First visualisation of the raw data
 data %>% 
   ggplot(mapping = aes(x = Stressor_A, y = Fronds_number)) +
   geom_point(alpha = 0.5) +
@@ -32,35 +35,40 @@ data %>%
        y = "Fronds number") + 
   theme_bw()
 
+## Fitting a four-parametric log-logistic dose response curve
 data_drm <- drm(formula = Fronds_number ~ Stressor_A, data = data, 
-                fct = LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")))
+                fct = LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
+                type = "Poisson")
 
 data_drm %>% summary()
 
+## Getting the EC5, EC10, EC50 and EC90 values
 ED(data_drm, respLev = c(5, 10, 50, 90), interval = "delta")
 
+## Creating the curve data for visualisation
 pred <- data.frame(Stressor_A = seq(from = min(data$Stressor_A), 
                                     to = max(data$Stressor_A), 
                                     length.out = 1000)) %>% 
-  mutate(pred = predict(data_drm, newdata = .), 
+  mutate(fit = predict(data_drm, newdata = .), 
          lwr = predict(data_drm, newdata = ., interval = "confidence")[, 2], 
          upr = predict(data_drm, newdata = ., interval = "confidence")[, 3]) %>% 
   as_tibble()
 
 pred
 
+## Visualizing a summary of the data and the dose-response curve
 data %>% 
   group_by(Stressor_A) %>% 
   summarize(Fronds_number_mean = mean(Fronds_number), 
             Fronds_number_SE = sd(Fronds_number) / sqrt(n())) %>% 
   ggplot() +
-  geom_vline(xintercept = data_drm$coefficients[4], 
+  geom_vline(xintercept = data_drm$coefficients[4],
              color = "blue", linetype = 3) +
-  geom_hline(yintercept = ((data_drm$coefficients[3] - data_drm$coefficients[2]) / 2) + data_drm$coefficients[2], 
+  geom_hline(yintercept = ((data_drm$coefficients[3] - data_drm$coefficients[2]) / 2) + data_drm$coefficients[2],
              color = "blue", linetype = 3) +
   geom_ribbon(mapping = aes(x = Stressor_A, ymin = lwr, ymax = upr), 
               data = pred, alpha = 0.2) +
-  geom_line(mapping = aes(x = Stressor_A, y = pred), 
+  geom_line(mapping = aes(x = Stressor_A, y = fit), 
             data = pred, size = 1) +
   geom_point(mapping = aes(x = Stressor_A, y = Fronds_number_mean), 
              color = "red") +
@@ -68,10 +76,12 @@ data %>%
                               ymin = Fronds_number_mean - Fronds_number_SE,
                               ymax = Fronds_number_mean + Fronds_number_SE),
                 color = "red", width = 0) + 
+  # geom_point(mapping = aes(x = Stressor_A, y = Fronds_number), 
+  #            data = data, alpha = 0.5) +
   labs(title = "Dose-response curve",
        subtitle = "Based on a four-parameter log-logistic function",
        x = "Stressor A", 
        y = "Fronds number") + 
   theme_bw()
 
-ggsave("Plots/Fronds_DRC.pdf", height = 3.5, units = "in")
+# ggsave("Plots/Fronds_DRC.pdf", height = 3.5, units = "in")
