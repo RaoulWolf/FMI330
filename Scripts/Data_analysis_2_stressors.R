@@ -35,21 +35,24 @@ data %>%
   theme_bw()
 
 data_glm <- glm(formula = Fronds_number ~ Stressor_B * Stressor_C, data = data, 
-                family = "poisson", contrasts = list(Stressor_C = "contr.treatment"))
+                family = Gamma(link = "inverse"), contrasts = list(Stressor_C = "contr.treatment"))
+
+data_glm <- data_glm %>% 
+  step(direction = "both")
 
 data_glm %>% summary()
 
 data_glm %>% drop1(scope = . ~ ., test = "Chisq")
 
 data_drm <- drm(formula = Fronds_number ~ Stressor_B, Stressor_C, data = data, 
-                fct = LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
+                fct = EXD.3(names = c("Lower Limit", "Upper Limit", "ED50")),
                 type = "Poisson")
 
 data_drm %>% summary()
 
 data_drm %>% plot()
 
-ED(data_drm, respLev = c(5, 10, 50, 90), interval = "delta")
+data_drm %>% ED(respLev = c(5, 10, 50, 90), interval = "delta")
 
 pred <- expand.grid(Stressor_B = seq(from = min(data$Stressor_B), 
                                   to = max(data$Stressor_B), 
