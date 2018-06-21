@@ -1,13 +1,15 @@
+## (Installing and) Loading the necessary packages
 # install.packages(c("tidyverse", "drc"))
-
 library(drc)
 library(tidyverse)
 library(readxl)
 
+## Reading in the data and inspecting it
 Two_Stressors_Data_raw <- read_excel(path = "Data/Data-FMI310.xlsx", sheet = "Two stressors -SM")
 
 Two_Stressors_Data_raw
 
+## Cleaning up the data for ideal use
 Two_Stressors_Data <- Two_Stressors_Data_raw %>% 
   select(-`Stressor B`) %>% 
   rename(Stressor_B = `Stressor B-b`, 
@@ -18,30 +20,36 @@ Two_Stressors_Data <- Two_Stressors_Data_raw %>%
          ROS_formation = `ROS formation`, 
          ROS_formation_fold_increase = `ROS formation (fold increase)`) %>% 
   mutate(Replicate = as.factor(Replicate), 
-         Stressor_C = fct_relevel(Stressor_C, "minus")) %>% 
+         Stressor_C = fct_relevel(Stressor_C, "minus"), 
+         Fronds_number = as.integer(Fronds_number)) %>% 
   arrange(Stressor_B, Stressor_C, Replicate)
 
 Two_Stressors_Data
 
 rm(Two_Stressors_Data_raw)
 
+## First visualisation of the raw data
 Two_Stressors_Data %>% 
   ggplot(mapping = aes(x = Stressor_B, y = Fronds_number, color = Stressor_C)) +
   geom_jitter(alpha = 0.5, width = (max(Two_Stressors_Data$Stressor_B) - min(Two_Stressors_Data$Stressor_B)) / 100, 
               height = (max(Two_Stressors_Data$Fronds_number) - min(Two_Stressors_Data$Fronds_number)) / 100) +
   labs(title = "The raw data", 
        x = "Stressor B", 
-       y = "Fronds number") + 
+       y = "Fronds number", 
+       color = "Stressor C") + 
   theme_bw()
 
+## Fitting a four-parametric log-logistic dose response curve
 Two_Stressors_drm <- drm(formula = Fronds_number ~ Stressor_B, curveid = Stressor_C, 
                          data = Two_Stressors_Data, type = "Poisson", 
                          fct = LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")))
 
 Two_Stressors_drm %>% summary()
 
+## Getting the EC5, EC10, EC50 and EC90 values
 Two_Stressors_drm %>% ED(respLev = c(5, 10, 50, 90), interval = "delta")
 
+## Creating the curve data for visualisation
 Two_Stressors_pred <- expand.grid(Stressor_B = seq(from = min(Two_Stressors_Data$Stressor_B), 
                                                    to = max(Two_Stressors_Data$Stressor_B), 
                                                    length.out = 1000), 
@@ -53,6 +61,7 @@ Two_Stressors_pred <- expand.grid(Stressor_B = seq(from = min(Two_Stressors_Data
 
 Two_Stressors_pred
 
+## Visualizing a summary of the data and the dose-response curve
 Two_Stressors_Data %>% 
   group_by(Stressor_B, Stressor_C) %>% 
   summarize(Fronds_number_mean = mean(Fronds_number), 
@@ -86,4 +95,5 @@ Two_Stressors_Data %>%
        color = "Stressor C") + 
   theme_bw()
 
+## Saving the plot
 # ggsave("Plots/Two_Stressors_Fronds_number_DRC.pdf", height = 3.5, units = "in")

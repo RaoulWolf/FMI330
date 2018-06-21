@@ -84,4 +84,5 @@ One_Stressor_Data %>%
        y = "Fronds number") + 
   theme_bw()
 
+## Saving the plot
 # ggsave("Plots/One_Stressor_Fronds_number_DRC.pdf", height = 3.5, units = "in")
