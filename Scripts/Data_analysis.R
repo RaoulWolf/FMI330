@@ -5,12 +5,12 @@ library(tidyverse)
 library(readxl)
 
 ## Reading in the data and inspecting it
-data_raw <- read_excel(path = "Data/Data-FMI310.xlsx", sheet = "One stressor -SM")
+One_Stressor_Data_raw <- read_excel(path = "Data/Data-FMI310.xlsx", sheet = "One stressor -SM")
 
-data_raw
+One_Stressor_Data_raw
 
 ## Cleaning up the data for ideal use
-data <- data_raw %>% 
+One_Stressor_Data <- One_Stressor_Data_raw %>% 
   rename(Stressor_A = `Stressor A`, 
          Fronds_number = `Fronds Number`, 
          Growth_rate = `Growth rate (pr day)`,
@@ -19,15 +19,16 @@ data <- data_raw %>%
          PS_II_inhibition = `PS II inhibition (%)`, 
          ROS_formation = `ROS formation`, 
          ROS_formation_fold_increase = `ROS formation (fold increase)`) %>% 
-  mutate(Replicate = as.factor(Replicate)) %>% 
+  mutate(Replicate = as.factor(Replicate), 
+         Fronds_number = as.integer(Fronds_number)) %>% 
   arrange(Stressor_A, Replicate)
 
-data
+One_Stressor_Data
 
-rm(data_raw)
+rm(One_Stressor_Data_raw)
 
 ## First visualisation of the raw data
-data %>% 
+One_Stressor_Data %>% 
   ggplot(mapping = aes(x = Stressor_A, y = Fronds_number)) +
   geom_point(alpha = 0.5) +
   labs(title = "The raw data", 
@@ -36,46 +37,45 @@ data %>%
   theme_bw()
 
 ## Fitting a four-parametric log-logistic dose response curve
-data_drm <- drm(formula = Fronds_number ~ Stressor_A, data = data, 
-                fct = LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
-                type = "Poisson")
+One_Stressor_drm <- drm(formula = Fronds_number ~ Stressor_A, data = One_Stressor_Data, 
+                        fct = LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
+                        type = "Poisson")
 
-data_drm %>% summary()
+One_Stressor_drm %>% summary()
 
 ## Getting the EC5, EC10, EC50 and EC90 values
-ED(data_drm, respLev = c(5, 10, 50, 90), interval = "delta")
+One_Stressor_drm %>% ED(respLev = c(5, 10, 50, 90), interval = "delta")
 
 ## Creating the curve data for visualisation
-pred <- data.frame(Stressor_A = seq(from = min(data$Stressor_A), 
-                                    to = max(data$Stressor_A), 
-                                    length.out = 1000)) %>% 
-  mutate(fit = predict(data_drm, newdata = .), 
-         lwr = predict(data_drm, newdata = ., interval = "confidence")[, 2], 
-         upr = predict(data_drm, newdata = ., interval = "confidence")[, 3]) %>% 
+One_Stressor_pred <- data.frame(Stressor_A = seq(from = min(One_Stressor_Data$Stressor_A), 
+                                                 to = max(One_Stressor_Data$Stressor_A), 
+                                                 length.out = 1000)) %>% 
+  mutate(fit = predict(One_Stressor_drm, newdata = .), 
+         lwr = predict(One_Stressor_drm, newdata = ., interval = "confidence")[, 2], 
+         upr = predict(One_Stressor_drm, newdata = ., interval = "confidence")[, 3]) %>% 
   as_tibble()
 
-pred
+One_Stressor_pred
 
 ## Visualizing a summary of the data and the dose-response curve
-data %>% 
+One_Stressor_Data %>% 
   group_by(Stressor_A) %>% 
   summarize(Fronds_number_mean = mean(Fronds_number), 
             Fronds_number_SE = sd(Fronds_number) / sqrt(n())) %>% 
   ggplot() +
-  geom_vline(xintercept = data_drm$coefficients[4],
-             color = "blue", linetype = 3) +
-  geom_hline(yintercept = ((data_drm$coefficients[3] - data_drm$coefficients[2]) / 2) + data_drm$coefficients[2],
-             color = "blue", linetype = 3) +
+  geom_vline(xintercept = One_Stressor_drm$coefficients[4],
+             linetype = 3, alpha = 0.5) +
+  geom_hline(yintercept = ((One_Stressor_drm$coefficients[3] - One_Stressor_drm$coefficients[2]) / 2) + One_Stressor_drm$coefficients[2],
+             linetype = 3, alpha = 0.5) +
   geom_ribbon(mapping = aes(x = Stressor_A, ymin = lwr, ymax = upr), 
-              data = pred, alpha = 0.2) +
+              data = One_Stressor_pred, alpha = 0.2) +
   geom_line(mapping = aes(x = Stressor_A, y = fit), 
-            data = pred, size = 1) +
-  geom_point(mapping = aes(x = Stressor_A, y = Fronds_number_mean), 
-             color = "red") +
+            data = One_Stressor_pred, size = 1, alpha = 0.5) +
+  geom_point(mapping = aes(x = Stressor_A, y = Fronds_number_mean)) +
   geom_errorbar(mapping = aes(x = Stressor_A, 
                               ymin = Fronds_number_mean - Fronds_number_SE,
                               ymax = Fronds_number_mean + Fronds_number_SE),
-                color = "red", width = 0) + 
+                width = 0) + 
   # geom_point(mapping = aes(x = Stressor_A, y = Fronds_number), 
   #            data = data, alpha = 0.5) +
   labs(title = "Dose-response curve",
@@ -84,4 +84,4 @@ data %>%
        y = "Fronds number") + 
   theme_bw()
 
-# ggsave("Plots/Fronds_DRC.pdf", height = 3.5, units = "in")
+# ggsave("Plots/One_Stressor_Fronds_number_DRC.pdf", height = 3.5, units = "in")
