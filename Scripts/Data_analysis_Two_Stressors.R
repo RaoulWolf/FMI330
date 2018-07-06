@@ -55,8 +55,8 @@ Two_Stressors_pred <- expand.grid(Stressor_B = seq(from = min(Two_Stressors_Data
                                                    length.out = 1000), 
                                   Stressor_C = unique(Two_Stressors_Data$Stressor_C)) %>% 
   mutate(fit = predict(Two_Stressors_drm, newdata = .), 
-         lwr = predict(Two_Stressors_drm, newdata = ., interval = "confidence")[, 2], 
-         upr = predict(Two_Stressors_drm, newdata = ., interval = "confidence")[, 3]) %>% 
+         lwr = predict(Two_Stressors_drm, newdata = ., interval = "confidence", constrain = FALSE)[, 2], 
+         upr = predict(Two_Stressors_drm, newdata = ., interval = "confidence", constrain = FALSE)[, 3]) %>% 
   as_tibble()
 
 Two_Stressors_pred

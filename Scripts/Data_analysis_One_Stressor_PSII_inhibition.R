@@ -22,13 +22,8 @@ niva_cols <- function(...) {
   niva_colors[cols]
 }
 
-
-# install.packages("extrafont")
-# extrafont::font_import()
-# extrafont::loadfonts(device = "pdf")
 extrafont::loadfonts(device = "postscript")
 extrafont::loadfonts(device = "win")
-
 
 ## Reading in the data and inspecting it
 One_Stressor_Data_raw <- read_excel(path = "Data/Data-FMI310.xlsx", sheet = "One stressor -SM")
@@ -47,7 +42,7 @@ One_Stressor_Data <- One_Stressor_Data_raw %>%
          ROS_formation_fold_increase = `ROS formation (fold increase)`) %>% 
   mutate(Replicate = as.factor(Replicate), 
          Fronds_number = as.integer(Fronds_number), 
-         Growth_inhibition_binomial = Growth_inhibition / 100) %>% 
+         PS_II_inhibition_binomial = PS_II_inhibition / 100) %>% 
   arrange(Stressor_A, Replicate)
 
 One_Stressor_Data
@@ -56,7 +51,7 @@ rm(One_Stressor_Data_raw)
 
 ## First visualisation of the raw data
 One_Stressor_Data %>% 
-  ggplot(mapping = aes(x = Stressor_A, y = Growth_inhibition_binomial)) +
+  ggplot(mapping = aes(x = Stressor_A, y = PS_II_inhibition_binomial)) +
   geom_point(alpha = 0.5) +
   labs(title = "The raw data", 
        x = "Stressor A", 
@@ -64,15 +59,21 @@ One_Stressor_Data %>%
   theme_bw()
 
 ## Fitting a four-parametric log-logistic dose response curve
-One_Stressor_drm <- drm(formula = Growth_inhibition_binomial ~ Stressor_A, data = One_Stressor_Data, 
-                        fct = W2.4(fixed = c(NA, 0, 1, NA), 
+One_Stressor_drm <- drm(formula = PS_II_inhibition_binomial ~ Stressor_A, data = One_Stressor_Data, 
+                        fct = LL.4(fixed = c(NA, 0, 1, NA), 
                                    names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
                         type = "continuous")
+
+One_Stressor_drm_u <- drm(formula = PS_II_inhibition_binomial ~ Stressor_A, data = One_Stressor_Data, 
+                          fct = ucedergreen(fixed = c(NA, 0, 1, NA, NA), 
+                                            names = c("Parameter 1", "Lower Limit", "Upper Limit", "Parameter 2", "Parameter 3"), 
+                                            alpha = 1),
+                          type = "continuous")
 
 One_Stressor_drm %>% summary()
 
 ## Getting the EC5, EC10, EC50 and EC90 values
-One_Stressor_drm %>% ED(respLev = c(5, 10, 50, 90), interval = "delta") # %>% capture.output(file = "EC_values_Growth_inhibition.txt")
+One_Stressor_drm %>% ED(respLev = c(5, 10, 50, 90), interval = "delta")
 
 ## Creating the curve data for visualisation
 One_Stressor_pred <- data.frame(Stressor_A = seq(from = min(One_Stressor_Data$Stressor_A), 
@@ -80,7 +81,8 @@ One_Stressor_pred <- data.frame(Stressor_A = seq(from = min(One_Stressor_Data$St
                                                  length.out = 1000)) %>% 
   mutate(fit = predict(One_Stressor_drm, newdata = .), 
          lwr = predict(One_Stressor_drm, newdata = ., interval = "confidence", constrain = FALSE)[, 2], 
-         upr = predict(One_Stressor_drm, newdata = ., interval = "confidence", constrain = FALSE)[, 3]) %>% 
+         upr = predict(One_Stressor_drm, newdata = ., interval = "confidence", constrain = FALSE)[, 3], 
+         fit_u = predict(One_Stressor_drm_u, newdata = .)) %>% 
   as_tibble()
 
 One_Stressor_pred
@@ -88,34 +90,41 @@ One_Stressor_pred
 ## Visualizing a summary of the data and the dose-response curve
 One_Stressor_Data %>% 
   group_by(Stressor_A) %>% 
-  summarize(Growth_inhibition_mean = mean(Growth_inhibition_binomial), 
-            Growth_inhibition_SE = sd(Growth_inhibition_binomial) / sqrt(n())) %>% 
+  summarize(PS_II_inhibition_mean = mean(PS_II_inhibition_binomial), 
+            PS_II_inhibition_SE = sd(PS_II_inhibition_binomial) / sqrt(n())) %>% 
   ggplot() +
   geom_vline(xintercept = ED(One_Stressor_drm, respLev = 50, display = FALSE)[1],
              linetype = 2, color = niva_cols("orange")) +
   geom_hline(yintercept = 0.5,
              linetype = 2, color = niva_cols("orange")) +
-  geom_ribbon(mapping = aes(x = Stressor_A, ymin = lwr, ymax = upr), 
+  # geom_vline(xintercept = ED(One_Stressor_drm_u, respLev = 50, display = FALSE)[1],
+  #            linetype = 3, alpha = 0.5, color = "darkgreen") +
+  # geom_hline(yintercept = 0.5,
+  #            linetype = 3, alpha = 0.5, color = "darkgreen") +
+  # geom_line(mapping = aes(x = Stressor_A, y = fit_u),
+  #           data = One_Stressor_pred, size = 1, alpha = 0.5, color = "darkgreen") +
+  geom_ribbon(mapping = aes(x = Stressor_A, ymin = lwr, ymax = upr),
               data = One_Stressor_pred, alpha = 0.5, fill = niva_cols("aqua")) +
-  geom_line(mapping = aes(x = Stressor_A, y = fit), 
+  geom_line(mapping = aes(x = Stressor_A, y = fit),
             data = One_Stressor_pred, size = 1, alpha = 0.5, color = niva_cols("dark blue")) +
-  geom_point(mapping = aes(x = Stressor_A, y = Growth_inhibition_mean), color = niva_cols("dark purple")) +
+  geom_point(mapping = aes(x = Stressor_A, y = PS_II_inhibition_mean), color = niva_cols("dark purple")) +
   geom_errorbar(mapping = aes(x = Stressor_A, 
-                              ymin = Growth_inhibition_mean - Growth_inhibition_SE,
-                              ymax = Growth_inhibition_mean + Growth_inhibition_SE),
+                              ymin = PS_II_inhibition_mean - PS_II_inhibition_SE,
+                              ymax = PS_II_inhibition_mean + PS_II_inhibition_SE),
                 width = 0, color = niva_cols("dark purple")) + 
-  # geom_point(mapping = aes(x = Stressor_A, y = Growth_inhibition_binomial),
-  #            data = One_Stressor_Data, alpha = 0.5, color = niva_cols("orange")) +
-  scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
+  # geom_point(mapping = aes(x = Stressor_A, y = PS_II_inhibition_binomial),
+  #            data = One_Stressor_Data, alpha = 0.5, color = "red") +
+  scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), 
                      labels = c("0", "25", "50", "75", "100")) +
   labs(title = expression(bold("Dose-response curve")),
-       subtitle = "Based on a four-parameter Weibull function",
+       subtitle = "Based on a four-parameter log-logistic function",
        x = expression("3,5-Dichlorophenol concentration"~("mg"/"L")), 
-       y = expression("Growth inhibition"~("%"))) + 
+       y = expression("Photosystem II inhibition"~("%"))) + 
   theme_minimal(base_family = "Century Gothic") +
   theme(title = element_text(color = niva_cols("dark purple")), 
         axis.title = element_text(color = niva_cols("dark purple")), 
         axis.text = element_text(color = niva_cols("dark purple")))
 
+
 ## Saving the plot
-# ggsave("Plots/One_Stressor_Growth_inhibition_DRC.svg", height = 3.5, units = "in")
+# ggsave("Plots/One_Stressor_PSII_inhibition_DRC.svg", height = 3.5, units = "in")
