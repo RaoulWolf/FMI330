@@ -92,3 +92,4 @@ Data %>%
 
 ## Saving the plot
 ggsave("Plots/Photosystem_II_inhibition_DRC.svg", height = 3.5, units = "in")
+ggsave("Plots/Photosystem_II_inhibition_DRC.pdf", height = 3.5, units = "in")

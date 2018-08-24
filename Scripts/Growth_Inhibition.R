@@ -91,3 +91,5 @@ Data %>%
 
 ## Saving the plot
 ggsave("Plots/Growth_inhibition_DRC.svg", height = 3.5, units = "in")
+ggsave("Plots/Growth_inhibition_DRC.pdf", height = 3.5, units = "in")
+

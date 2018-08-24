@@ -91,3 +91,4 @@ Data %>%
 
 ## Saving the plot
 ggsave("Plots/ROS_Formation_DRC.svg", height = 3.5, units = "in")
+ggsave("Plots/ROS_Formation_DRC.pdf", height = 3.5, units = "in")
