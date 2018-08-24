@@ -22,8 +22,8 @@ niva_cols <- function(...) {
   niva_colors[cols]
 }
 
-extrafont::loadfonts(device = "postscript")
-extrafont::loadfonts(device = "win")
+extrafont::loadfonts(device = "postscript", quiet = TRUE)
+extrafont::loadfonts(device = "win", quiet = TRUE)
 
 ## Reading in the data and inspecting it
 One_Stressor_Data_raw <- read_excel(path = "Data/Data-FMI310.xlsx", sheet = "One stressor -SM")
@@ -51,7 +51,7 @@ rm(One_Stressor_Data_raw)
 
 ## First visualisation of the raw data
 One_Stressor_Data %>% 
-  ggplot(mapping = aes(x = Stressor_A, y = PS_II_inhibition_binomial)) +
+  ggplot(mapping = aes(x = Stressor_A, y = PS_II_inhibition)) +
   geom_point(alpha = 0.5) +
   labs(title = "The raw data", 
        x = "Stressor A", 
@@ -60,15 +60,15 @@ One_Stressor_Data %>%
 
 ## Fitting a four-parametric log-logistic dose response curve
 One_Stressor_drm <- drm(formula = PS_II_inhibition_binomial ~ Stressor_A, data = One_Stressor_Data, 
-                        fct = LL.4(fixed = c(NA, 0, 1, NA), 
-                                   names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
+                        fct = LL.4(fixed = c(NA, NA, NA, NA), 
+                                   names = c("Slope", "Lower Limit", "Upper Limit", "EC50")),
                         type = "continuous")
 
-One_Stressor_drm_u <- drm(formula = PS_II_inhibition_binomial ~ Stressor_A, data = One_Stressor_Data, 
-                          fct = ucedergreen(fixed = c(NA, 0, 1, NA, NA), 
-                                            names = c("Parameter 1", "Lower Limit", "Upper Limit", "Parameter 2", "Parameter 3"), 
-                                            alpha = 1),
-                          type = "continuous")
+# One_Stressor_drm_u <- drm(formula = PS_II_inhibition_binomial ~ Stressor_A, data = One_Stressor_Data, 
+#                           fct = ucedergreen(fixed = c(NA, 0, 1, NA, NA), 
+#                                             names = c("Parameter 1", "Lower Limit", "Upper Limit", "Parameter 2", "Parameter 3"), 
+#                                             alpha = 1),
+#                           type = "continuous")
 
 One_Stressor_drm %>% summary()
 
@@ -81,8 +81,8 @@ One_Stressor_pred <- data.frame(Stressor_A = seq(from = min(One_Stressor_Data$St
                                                  length.out = 1000)) %>% 
   mutate(fit = predict(One_Stressor_drm, newdata = .), 
          lwr = predict(One_Stressor_drm, newdata = ., interval = "confidence", constrain = FALSE)[, 2], 
-         upr = predict(One_Stressor_drm, newdata = ., interval = "confidence", constrain = FALSE)[, 3], 
-         fit_u = predict(One_Stressor_drm_u, newdata = .)) %>% 
+         upr = predict(One_Stressor_drm, newdata = ., interval = "confidence", constrain = FALSE)[, 3]) %>%  
+         # fit_u = predict(One_Stressor_drm_u, newdata = .)) %>% 
   as_tibble()
 
 One_Stressor_pred
@@ -116,11 +116,11 @@ One_Stressor_Data %>%
   #            data = One_Stressor_Data, alpha = 0.5, color = "red") +
   scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), 
                      labels = c("0", "25", "50", "75", "100")) +
-  labs(title = expression(bold("Dose-response curve")),
-       subtitle = "Based on a four-parameter log-logistic function",
+  labs(title = expression(bold("Photosystem II inhibition")),
+       subtitle = "Four-parameter log-logistic dose-response curve",
        x = expression("3,5-Dichlorophenol concentration"~("mg"/"L")), 
        y = expression("Photosystem II inhibition"~("%"))) + 
-  theme_minimal(base_family = "Century Gothic") +
+  theme_minimal(base_family = "Calibri Light") +
   theme(title = element_text(color = niva_cols("dark purple")), 
         axis.title = element_text(color = niva_cols("dark purple")), 
         axis.text = element_text(color = niva_cols("dark purple")))

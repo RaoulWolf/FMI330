@@ -4,14 +4,14 @@ library(drc)
 library(tidyverse)
 library(readxl)
 
-niva_colors <- c(`dark blue`   = rgb(red =   0, green =  96, blue = 169, maxColorValue = 255), 
-                 aqua         = rgb(red = 170, green = 218, blue = 219, maxColorValue = 255), 
-                 blue         = rgb(red =   0, green = 158, blue = 224, maxColorValue = 255), 
-                 `dark teal`   = rgb(red =   0, green = 164, blue = 167, maxColorValue = 255),
-                 orange       = rgb(red = 228, green = 104, blue =  11, maxColorValue = 255),
-                 `dark purple` = rgb(red =  26, green =  23, blue =  27, maxColorValue = 255),
-                 `light grey`  = rgb(red = 182, green = 183, blue = 185, maxColorValue = 255), 
-                 white        = rgb(red = 255, green = 255, blue = 255, maxColorValue = 255))
+niva_colors <- c(`dark blue`   = rgb(red =   0, green =  96, blue = 169, alpha = 255, maxColorValue = 255), 
+                  aqua         = rgb(red = 170, green = 218, blue = 219, alpha = 255, maxColorValue = 255), 
+                  blue         = rgb(red =   0, green = 158, blue = 224, alpha = 255, maxColorValue = 255), 
+                 `dark teal`   = rgb(red =   0, green = 164, blue = 167, alpha = 255, maxColorValue = 255),
+                  orange       = rgb(red = 228, green = 104, blue =  11, alpha = 255, maxColorValue = 255),
+                 `dark purple` = rgb(red =  26, green =  23, blue =  27, alpha = 255, maxColorValue = 255),
+                 `light grey`  = rgb(red = 182, green = 183, blue = 185, alpha = 255, maxColorValue = 255), 
+                  white        = rgb(red = 255, green = 255, blue = 255, alpha = 255, maxColorValue = 255))
 
 niva_cols <- function(...) {
   cols <- c(...)
@@ -26,8 +26,8 @@ niva_cols <- function(...) {
 # install.packages("extrafont")
 # extrafont::font_import()
 # extrafont::loadfonts(device = "pdf")
-extrafont::loadfonts(device = "postscript")
-extrafont::loadfonts(device = "win")
+extrafont::loadfonts(device = "postscript", quiet = TRUE)
+extrafont::loadfonts(device = "win", quiet = TRUE)
 
 
 ## Reading in the data and inspecting it
@@ -56,7 +56,7 @@ rm(One_Stressor_Data_raw)
 
 ## First visualisation of the raw data
 One_Stressor_Data %>% 
-  ggplot(mapping = aes(x = Stressor_A, y = Growth_inhibition_binomial)) +
+  ggplot(mapping = aes(x = Stressor_A, y = Growth_inhibition)) +
   geom_point(alpha = 0.5) +
   labs(title = "The raw data", 
        x = "Stressor A", 
@@ -64,9 +64,9 @@ One_Stressor_Data %>%
   theme_bw()
 
 ## Fitting a four-parametric log-logistic dose response curve
-One_Stressor_drm <- drm(formula = Growth_inhibition_binomial ~ Stressor_A, data = One_Stressor_Data, 
-                        fct = W2.4(fixed = c(NA, 0, 1, NA), 
-                                   names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
+One_Stressor_drm <- drm(formula = Growth_inhibition ~ Stressor_A, data = One_Stressor_Data, 
+                        fct = LL.4(fixed = c(NA, NA, NA, NA), 
+                                   names = c("Slope", "Lower Limit", "Upper Limit", "EC50")),
                         type = "continuous")
 
 One_Stressor_drm %>% summary()
@@ -88,12 +88,12 @@ One_Stressor_pred
 ## Visualizing a summary of the data and the dose-response curve
 One_Stressor_Data %>% 
   group_by(Stressor_A) %>% 
-  summarize(Growth_inhibition_mean = mean(Growth_inhibition_binomial), 
-            Growth_inhibition_SE = sd(Growth_inhibition_binomial) / sqrt(n())) %>% 
+  summarize(Growth_inhibition_mean = mean(Growth_inhibition), 
+            Growth_inhibition_SE = sd(Growth_inhibition) / sqrt(n())) %>% 
   ggplot() +
   geom_vline(xintercept = ED(One_Stressor_drm, respLev = 50, display = FALSE)[1],
              linetype = 2, color = niva_cols("orange")) +
-  geom_hline(yintercept = 0.5,
+  geom_hline(yintercept = (One_Stressor_drm$coefficients[3] - One_Stressor_drm$coefficients[2]) / 2,
              linetype = 2, color = niva_cols("orange")) +
   geom_ribbon(mapping = aes(x = Stressor_A, ymin = lwr, ymax = upr), 
               data = One_Stressor_pred, alpha = 0.5, fill = niva_cols("aqua")) +
@@ -106,13 +106,13 @@ One_Stressor_Data %>%
                 width = 0, color = niva_cols("dark purple")) + 
   # geom_point(mapping = aes(x = Stressor_A, y = Growth_inhibition_binomial),
   #            data = One_Stressor_Data, alpha = 0.5, color = niva_cols("orange")) +
-  scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = c("0", "25", "50", "75", "100")) +
+  # scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
+  #                    labels = c("0", "25", "50", "75", "100")) +
   labs(title = expression(bold("Dose-response curve")),
-       subtitle = "Based on a four-parameter Weibull function",
+       subtitle = "Based on a four-parameter log-logistic function",
        x = expression("3,5-Dichlorophenol concentration"~("mg"/"L")), 
        y = expression("Growth inhibition"~("%"))) + 
-  theme_minimal(base_family = "Century Gothic") +
+  theme_minimal(base_family = "Calibri Light") +
   theme(title = element_text(color = niva_cols("dark purple")), 
         axis.title = element_text(color = niva_cols("dark purple")), 
         axis.text = element_text(color = niva_cols("dark purple")))
