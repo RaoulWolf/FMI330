@@ -57,8 +57,8 @@ PSII_inhibition_pred <- data.frame(Stressor_A = seq(from = min(Data$Stressor_A),
                                                  to = max(Data$Stressor_A), 
                                                  length.out = 1000)) %>% 
   mutate(fit = predict(PSII_inhibition_DRM, newdata = .), 
-         lwr = predict(PSII_inhibition_DRM, newdata = ., interval = "confidence", constrain = FALSE)[, 2], 
-         upr = predict(PSII_inhibition_DRM, newdata = ., interval = "confidence", constrain = FALSE)[, 3]) %>%  
+         lwr = predict(PSII_inhibition_DRM, newdata = ., interval = "confidence")[, 2], 
+         upr = predict(PSII_inhibition_DRM, newdata = ., interval = "confidence")[, 3]) %>%  
   as_tibble()
 
 PSII_inhibition_pred

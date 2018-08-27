@@ -57,8 +57,8 @@ Growth_inhibition_pred <- data.frame(Stressor_A = seq(from = min(Data$Stressor_A
                                                       to = max(Data$Stressor_A), 
                                                       length.out = 1000)) %>% 
   mutate(fit = predict(Growth_inhibition_DRM, newdata = .), 
-         lwr = predict(Growth_inhibition_DRM, newdata = ., interval = "confidence", constrain = FALSE)[, 2], 
-         upr = predict(Growth_inhibition_DRM, newdata = ., interval = "confidence", constrain = FALSE)[, 3]) %>% 
+         lwr = predict(Growth_inhibition_DRM, newdata = ., interval = "confidence")[, 2], 
+         upr = predict(Growth_inhibition_DRM, newdata = ., interval = "confidence")[, 3]) %>% 
   as_tibble()
 
 Growth_inhibition_pred

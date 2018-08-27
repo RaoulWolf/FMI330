@@ -57,8 +57,8 @@ ROS_formation_pred <- data.frame(Stressor_A = seq(from = min(Data$Stressor_A),
                                                   to = max(Data$Stressor_A), 
                                                   length.out = 1000)) %>% 
   mutate(fit = predict(ROS_formation_DRM, newdata = .), 
-         lwr = predict(ROS_formation_DRM, newdata = ., interval = "confidence", constrain = FALSE)[, 2], 
-         upr = predict(ROS_formation_DRM, newdata = ., interval = "confidence", constrain = FALSE)[, 3]) %>% 
+         lwr = predict(ROS_formation_DRM, newdata = ., interval = "confidence")[, 2], 
+         upr = predict(ROS_formation_DRM, newdata = ., interval = "confidence")[, 3]) %>% 
   as_tibble()
 
 ROS_formation_pred
