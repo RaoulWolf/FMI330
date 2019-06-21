@@ -76,11 +76,8 @@ Data %>%
   geom_hline(yintercept = coef(ROS_formation.drm)[2] + 
                ((coef(ROS_formation.drm)[3] - coef(ROS_formation.drm)[2]) / 2), linetype = 3) +
   scale_y_log10() +
-  labs(title = expression(italic("Lemna minor")), 
-       subtitle = "Four-parametric log-logistic dose-response curve",
-       x = "3,5-Dichlorophenol (mg/L)", 
-       y = "ROS formation (fold increase) (log scale)",
-       caption = "FMI330")
+  labs(x = "3,5-Dichlorophenol (mg/L)", 
+       y = "ROS formation (fold increase) (log scale)")
 
 ## Saving the plot
 ggsave("Plots/ROS_Formation_DRC.png", height = 5.25, width = 7, units = "in", dpi = 600, type = "cairo-png")

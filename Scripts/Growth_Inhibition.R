@@ -37,11 +37,8 @@ rm(Data_raw)
 Data %>% 
   ggplot() +
   geom_point(mapping = aes(x = Stressor_A, y = Growth_inhibition), size = 2, alpha = 0.5) +
-  labs(title = expression(italic("Lemna minor")), 
-       subtitle = "Raw data",
-       x = "3,5-Dichlorophenol (mg/L)", 
-       y = "Growth inhibition (%)", 
-       caption = "FMI330")
+  labs(x = "3,5-Dichlorophenol (mg/L)", 
+       y = "Growth inhibition (%)")
 
 ## Fitting a four-parametric log-logistic dose response curve
 Growth_inhibition.drm <- drm(formula = Growth_inhibition ~ Stressor_A, 
@@ -79,11 +76,8 @@ Data %>%
   geom_vline(xintercept = coef(Growth_inhibition.drm)[4], linetype = 3) +
   geom_hline(yintercept = coef(Growth_inhibition.drm)[2] +
                ((coef(Growth_inhibition.drm)[3] - coef(Growth_inhibition.drm)[2]) / 2), linetype = 3) +
-  labs(title = expression(italic("Lemna minor")),
-       subtitle = "Four-parametric log-logistic dose-response curve",
-       x = "3,5-Dichlorophenol (mg/L)", 
-       y = "Growth inhibition (%)", 
-       caption = "FMI330")
+  labs(x = "3,5-Dichlorophenol (mg/L)", 
+       y = "Growth inhibition (%)")
 
 ## Saving the plot
 ggsave("Plots/Growth_inhibition_DRC.png", height = 5.25, width = 7, units = "in", dpi = 600, type = "cairo-png")
