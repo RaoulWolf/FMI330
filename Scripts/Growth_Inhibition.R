@@ -87,5 +87,3 @@ Data %>%
 
 ## Saving the plot
 ggsave("Plots/Growth_inhibition_DRC.png", height = 5.25, width = 7, units = "in", dpi = 600, type = "cairo-png")
-
-# test
