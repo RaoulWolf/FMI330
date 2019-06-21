@@ -1,10 +1,13 @@
 ## This is the R script to perform a dose-response analysis of growth inhibition
 
 ## (Installing and) Loading the necessary packages
-# install.packages(c("tidyverse", "drc"))
-library(drc)
+# install.packages(c("tidyverse", "drc", "lmtest", "sandwich"))
 library(tidyverse)
 library(readxl)
+library(drc)
+library(lmtest)
+library(sandwich)
+
 
 ## Reading in the data and inspecting it
 Data_raw <- read_excel(path = "Data/Data-FMI310.xlsx", 
@@ -32,64 +35,56 @@ rm(Data_raw)
 
 ## First visualisation of the raw data
 Data %>% 
-  ggplot(mapping = aes(x = Stressor_A, y = Growth_inhibition)) +
-  geom_point(alpha = 0.5) +
-  labs(title = expression(bold("Growth inhibition of")~bolditalic("Lemna minor")), 
-       subtitle = "The raw data",
-       x = expression("3,5-Dichlorophenol concentration"~("mg"/"L")), 
-       y = expression("Growth inhibition"~("%"))) + 
-  theme_minimal()
+  ggplot() +
+  geom_point(mapping = aes(x = Stressor_A, y = Growth_inhibition), size = 2, alpha = 0.5) +
+  labs(title = expression(italic("Lemna minor")), 
+       subtitle = "Raw data",
+       x = "3,5-Dichlorophenol (mg/L)", 
+       y = "Growth inhibition (%)", 
+       caption = "FMI330")
 
 ## Fitting a four-parametric log-logistic dose response curve
-Growth_inhibition_DRM <- drm(formula = Growth_inhibition ~ Stressor_A, 
+Growth_inhibition.drm <- drm(formula = Growth_inhibition ~ Stressor_A, 
                              data = Data, 
                              fct = LL.4(fixed = c(NA, NA, NA, NA), 
                                         names = c("Slope", "Lower Limit", "Upper Limit", "EC50")),
                              type = "continuous")
 
-Growth_inhibition_DRM %>% summary()
+Growth_inhibition.drm %>% summary()
+
+coeftest(Growth_inhibition.drm, vcov. = sandwich)
 
 ## Getting the EC5, EC10, EC50 and EC90 values
-Growth_inhibition_DRM %>% ED(respLev = c(5, 10, 50, 90), interval = "delta")
+Growth_inhibition.drm %>% ED(respLev = c(5, 10, 50, 90), interval = "delta", vcov. = sandwich)
 
 ## Creating the curve data for visualisation
 Growth_inhibition_pred <- data.frame(Stressor_A = seq(from = min(Data$Stressor_A), 
                                                       to = max(Data$Stressor_A), 
                                                       length.out = 1000)) %>% 
-  mutate(fit = predict(Growth_inhibition_DRM, newdata = .), 
-         lwr = predict(Growth_inhibition_DRM, newdata = ., interval = "confidence")[, 2], 
-         upr = predict(Growth_inhibition_DRM, newdata = ., interval = "confidence")[, 3]) %>% 
+  mutate(fit = predict(Growth_inhibition.drm, newdata = .), 
+         lwr = predict(Growth_inhibition.drm, newdata = ., interval = "confidence", vcov. = sandwich)[, 2], 
+         upr = predict(Growth_inhibition.drm, newdata = ., interval = "confidence", vcov. = sandwich)[, 3]) %>% 
   as_tibble()
 
 Growth_inhibition_pred
 
 ## Visualizing a summary of the data and the dose-response curve
 Data %>% 
-  group_by(Stressor_A) %>% 
-  summarize(Growth_inhibition_mean = mean(Growth_inhibition), 
-            Growth_inhibition_SE = sd(Growth_inhibition) / sqrt(n())) %>% 
   ggplot() +
-  geom_vline(xintercept = Growth_inhibition_DRM$coefficients[4],
-             linetype = 2, color = 2) +
-  geom_hline(yintercept = Growth_inhibition_DRM$coefficients[2] + 
-               ((Growth_inhibition_DRM$coefficients[3] - Growth_inhibition_DRM$coefficients[2]) / 2),
-             linetype = 2, color = 2) +
   geom_ribbon(mapping = aes(x = Stressor_A, ymin = lwr, ymax = upr), 
-              data = Growth_inhibition_pred, alpha = 0.25, fill = 3) +
+              data = Growth_inhibition_pred, alpha = 0.2) +
   geom_line(mapping = aes(x = Stressor_A, y = fit), 
-            data = Growth_inhibition_pred, size = 1, alpha = 0.5, color = 4) +
-  geom_point(mapping = aes(x = Stressor_A, y = Growth_inhibition_mean)) +
-  geom_errorbar(mapping = aes(x = Stressor_A, 
-                              ymin = Growth_inhibition_mean - Growth_inhibition_SE,
-                              ymax = Growth_inhibition_mean + Growth_inhibition_SE),
-                width = 0) + 
-  labs(title = expression(bold("Growth inhibition of")~bolditalic("Lemna minor")),
-       subtitle = "Four-parameter log-logistic dose-response curve",
-       x = expression("3,5-Dichlorophenol concentration"~("mg"/"L")), 
-       y = expression("Growth inhibition"~("%"))) + 
-  theme_minimal()
+            data = Growth_inhibition_pred, size = 1) +
+  geom_point(mapping = aes(x = Stressor_A, y = Growth_inhibition), size = 2, alpha = 0.5) +
+  geom_vline(xintercept = coef(Growth_inhibition.drm)[4], linetype = 3) +
+  geom_hline(yintercept = coef(Growth_inhibition.drm)[2] +
+               ((coef(Growth_inhibition.drm)[3] - coef(Growth_inhibition.drm)[2]) / 2), linetype = 3) +
+  labs(title = expression(italic("Lemna minor")),
+       subtitle = "Four-parametric log-logistic dose-response curve",
+       x = "3,5-Dichlorophenol (mg/L)", 
+       y = "Growth inhibition (%)", 
+       caption = "FMI330")
 
 ## Saving the plot
-ggsave("Plots/Growth_inhibition_DRC.svg", height = 3.5, units = "in")
-ggsave("Plots/Growth_inhibition_DRC.pdf", height = 3.5, units = "in")
+ggsave("Plots/Growth_inhibition_DRC.png", height = 5.25, width = 7, units = "in", dpi = 600, type = "cairo-png")
 
