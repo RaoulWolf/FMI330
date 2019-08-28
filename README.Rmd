@@ -35,22 +35,33 @@ We are now ready to load the data!
 First, we load the raw data and inspect it.
 
 ```{r}
-data <- read_xlsx(path = "Data/FMI330 Data.xlsx", sheet = "Summary")
+data <- read_xlsx(path = "Data/Diuron_DRC_Data_RevLee.xlsx", sheet = "Summary") %>% 
+  select(-SampleName, -Replicate) %>% 
+  rename(Concentration = concentration, 
+         Fronds_number_inhibition = FN_Normalization_PERCENT,
+         Frond_size_inhibition = FS_Normalization_PERCENT,
+         Photosystem_II_inhibition = PSII_Normalization_PERCENT,
+         ROS_formation = `ROS_Formation_Fold increase`,
+         Chlorophyll_A_inhibition = `Chlorophyll a_inhibition_PERCENT`,
+         Chlorophyll_B_inhibition = `Chlorophyll b_inhibition_PERCENT`, 
+         Carotenoids_inhibition = Carotenoids_inhibition_PERCENT) %>% 
+  filter(!str_detect(Note, "CT")) %>% 
+  select(-Note)
 
 data
 ```
 
 
-# Fronds_number
+# Fronds number
 ## Visualizing the raw data
 
 Let's take a look at the reproduction along the stressor gradient. Note that this plot is meant to help you understand the data, and is not part of your reports!
 ```{r}
 data %>% 
   ggplot() +
-  geom_point(mapping = aes(x = Concentration, y = Fronds_number), size = 2, alpha = 0.5) +
-  labs(x = "Stressor (mg/L)", 
-       y = "Fronds number (%)") +
+  geom_point(mapping = aes(x = Concentration, y = Fronds_number_inhibition), size = 2, alpha = 0.5) +
+  labs(x = "Diuron (mg/L)", 
+       y = "Fronds number inhibition (%)") +
   theme_light()
 ```
 
@@ -63,7 +74,7 @@ In the first step, we have to transfrom the `Concentration` from a numeric colum
 ```{r}
 data %>% 
   mutate(Concentration = fct_relevel(as.character(Concentration), "0")) %>% 
-  lm(formula = Fronds_number ~ Concentration, data = ., contrasts = list(Concentration = "contr.treatment")) %>% 
+  lm(formula = Fronds_number_inhibition ~ Concentration, data = ., contrasts = list(Concentration = "contr.treatment")) %>% 
   glht(linfct = mcp(Concentration = "Dunnett"), vcov = sandwich) %>% 
   summary(test = adjusted(type = "holm"))
 ```
@@ -75,11 +86,11 @@ From the results we can deduce that the NOEC has a Concentration of 1 mg/L, and 
 From the visualization of the raw data, we see a very clear monotonic dose-response pattern! Let's fit a four-parametric log-logistic model using the `drc` package. We then take a look at the results (i.e., the four parameters, or coefficients) using `coeftest` with adjusted variance-covariance matrix.
 
 ```{r}
-reproduction.drm <- data %>% 
-  drm(formula = Fronds_number ~ Concentration, data = .,
+fronds_number_inhibition.drm <- data %>% 
+  drm(formula = Fronds_number_inhibition ~ Concentration, data = .,
       fct = LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "EC50")))
 
-reproduction.drm %>% 
+fronds_number_inhibition.drm %>% 
   coeftest(vcov. = sandwich)
 ```
 
@@ -87,10 +98,10 @@ The fitted values for the parameters seem to make sense. The lower and upper lim
 
 ## EC~X~ derivation
 
-Let's take a look at the corrected parameter estimates and the EC~5~ and EC~50~ values with 95% confidence limits.
+Let's take a look at the corrected parameter estimates and the EC~5~, EC~10~, and EC~50~ values with 95% confidence limits.
 ```{r}
-reproduction.drm %>% 
-  ED(respLev = c(5, 50), interval = "delta", vcov. = sandwich)
+fronds_number_inhibition.drm %>% 
+  ED(respLev = c(5, 10, 50), interval = "delta", vcov. = sandwich)
 ```
 
 ## Plotting of the dose-response curve
@@ -98,25 +109,23 @@ reproduction.drm %>%
 Now that we got all necessary information, let's plot the dose-response curve. This is *not* straight forward, as it requires advanced use of the `predict()` function, so feel free to copy-paste.
 
 ```{r}
-reproduction.pred <- data.frame(Concentration = seq(from = min(data$Concentration),
-                                                    to = max(data$Concentration),
-                                                    length.out = 1000)) %>% 
-  mutate(fit = predict(reproduction.drm, newdata = .), 
-         lwr = predict(reproduction.drm, newdata = ., interval = "confidence", vcov. = sandwich)[, 2], 
-         upr = predict(reproduction.drm, newdata = ., interval = "confidence", vcov. = sandwich)[, 3])
-
-data %>% 
+data.frame(Concentration = seq(from = min(data$Concentration),
+                               to = max(data$Concentration),
+                               length.out = 1000)) %>% 
+  mutate(fit = predict(fronds_number_inhibition.drm, newdata = .), 
+         lwr = predict(fronds_number_inhibition.drm, newdata = ., interval = "confidence", vcov. = sandwich)[, 2], 
+         upr = predict(fronds_number_inhibition.drm, newdata = ., interval = "confidence", vcov. = sandwich)[, 3]) %>% 
   ggplot() +
-  geom_ribbon(mapping = aes(x = Concentration, ymin = lwr, ymax = upr), data = reproduction.pred, alpha = 0.2) +
-  geom_line(mapping = aes(x = Concentration, y = fit), data = reproduction.pred, size = 1) +
-  geom_point(mapping = aes(x = Concentration, y = Fronds_number), size = 2, alpha = 0.5) +
-  labs(x = "Stressor (mg/L)", 
-       y = "Fronds number (%)") +
+  geom_ribbon(mapping = aes(x = Concentration, ymin = lwr, ymax = upr), alpha = 0.2) +
+  geom_line(mapping = aes(x = Concentration, y = fit), size = 1) +
+  geom_point(mapping = aes(x = Concentration, y = Fronds_number_inhibition), data = data, size = 2, alpha = 0.5) +
+  labs(x = "Diuron (mg/L)", 
+       y = "Fronds number inhibition (%)") +
   theme_light()
 ```
 
 Looks good, so let's save the plot.
 ```{r}
-ggsave("Figures/Fronds number.png", height = 5.25, width = 7, units = "in", dpi = 600, type = "cairo-png")
+ggsave("Figures/Fronds number inhibition.png", height = 5.25, width = 7, units = "in", dpi = 600, type = "cairo-png")
 ```
 
