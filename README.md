@@ -146,8 +146,9 @@ data %>%
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## (Adjusted p values reported -- holm method)
 
-From the results we can deduce that the NOEC has a Concentration of 1
-mg/L, and the LOEC has a Concentration of 1.5 mg/L.
+From the results we can deduce that the LOEC has a concentration of 0.01
+mg/L. As this is the lowest treatment concentration, the NOEC has to be
+\< 0.01 mg/L.
 
 ## Dose-response model fitting
 
