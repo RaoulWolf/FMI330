@@ -15,7 +15,7 @@ data_raw <- read_xlsx(path = "Data/Diuron_DRC_Data_RevLee.xlsx", # relative path
                       sheet = "Summary")                         # sheet in file
 
 data <- data_raw %>% 
-  select(-SampleName) %>% 
+  select(-SampleName, -Replicate) %>% 
   rename(Concentration = concentration, 
          Fronds_number_inhibition = FN_Normalization_PERCENT,
          Frond_size_inhibition = FS_Normalization_PERCENT,
